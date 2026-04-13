@@ -1,121 +1,140 @@
+//
+//  LoginView.swift
+//  WUconnect
+//
+//  Created by Jaeyeon Kim on 4/3/26.
+//
+
+
 import SwiftUI
 
 struct LoginView: View {
+    @EnvironmentObject var appState: AppState
+
     @State private var username = ""
     @State private var password = ""
     @State private var rememberMe = false
-    @State private var goToProfile = false
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-                //Dark Mode by default(fixed)
-                Color.black
-                    .ignoresSafeArea()
-                VStack {
-                    Spacer()
-                    
-            
-                    //Title Area
-                    Text("WUconnect")
-                        .font(.system(size: 34, weight: .medium))
-                        .foregroundColor(.white)
+        ZStack {
+            //Dark Mode by default(fixed)
+            Color.black
+                .ignoresSafeArea()
 
-                    Text("Login to your Account")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.top, 20)
+            VStack {
+                Spacer()
 
-                    Spacer()
+                //Title Area
+                Text("WUconnect")
+                    .font(.system(size: 34, weight: .medium))
+                    .foregroundColor(.white)
 
-                    
-                    //Input Area
-                    //using Username instead of email to make things easier
-                    VStack(alignment: .leading, spacing: 28) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Username")
-                                .foregroundColor(.white)
-                                .font(.system(size: 18))
+                Text("Login to your Account")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.top, 20)
 
-                            TextField("", text: $username)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .frame(height: 42)
-                                .overlay(
-                                    Rectangle()
-                                        .stroke(Color.white, lineWidth: 1)
-                                )
-                                .textInputAutocapitalization(.never)
-                        }
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Password")
-                                .foregroundColor(.white)
-                                .font(.system(size: 18))
+                Spacer()
 
-                            SecureField("", text: $password)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .frame(height: 42)
-                                .overlay(
-                                    Rectangle()
-                                        .stroke(Color.white, lineWidth: 1)
-                                )
-                        }
-
-                        
-                        //Remember Me
-                        Toggle(isOn: $rememberMe) {
-                            Text("Remember me")
-                                .foregroundColor(.white)
-                                .font(.system(size: 18))
-                        }
-                        .toggleStyle(CheckBox())
-                    }
-                    .padding(.horizontal, 50)
-
-                    Spacer()
-
-                    
-                    //Login Button
-                    Button(action: {
-                        print("Login tapped")
-                        goToProfile = true
-                    }) {
-                        Text("Login")
-                            .font(.system(size: 22, weight: .medium))
+                //Input Area
+                //using Username instead of email to make things easier
+                VStack(alignment: .leading, spacing: 28) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Username")
                             .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 62)
-                            .background(Color.blue)
-                            .cornerRadius(24)
-                    }
-                    .padding(.horizontal, 32)
+                            .font(.system(size: 18))
 
-                    Spacer()
-
-                    //Don't have an account part
-                    HStack(spacing: 6) {
-                        Text("Don't have an account?")
+                        TextField("", text: $username)
                             .foregroundColor(.white)
-                            .font(.system(size: 16))
-
-                        Button("Sign Up") {
-                            print("Sign Up tapped")
-                        }
-                        .foregroundColor(.blue)
-                        .font(.system(size: 16, weight: .medium))
+                            .padding(.horizontal, 10)
+                            .frame(height: 42)
+                            .overlay(
+                                Rectangle()
+                                    .stroke(Color.white, lineWidth: 1)
+                            )
+                            .textInputAutocapitalization(.never)
                     }
-                    .padding(.bottom, 30)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Password")
+                            .foregroundColor(.white)
+                            .font(.system(size: 18))
+
+                        SecureField("", text: $password)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .frame(height: 42)
+                            .overlay(
+                                Rectangle()
+                                    .stroke(Color.white, lineWidth: 1)
+                            )
+                    }
+
+                    //Remember Me
+                    Toggle(isOn: $rememberMe) {
+                        Text("Remember me")
+                            .foregroundColor(.white)
+                            .font(.system(size: 18))
+                    }
+                    .toggleStyle(CheckBox())
                 }
-            }
-            .navigationBarBackButtonHidden(true)
-            .navigationDestination(isPresented: $goToProfile) {
-                ProfileView()
+                .padding(.horizontal, 50)
+
+                Spacer()
+
+                //Login Button
+                Button(action: {
+                    print("Login tapped")
+
+                    let user = User(
+                        name: "Dog Dog",
+                        schoolInfo: "WashU - Senior",
+                        major: "Computer Science",
+                        personalEmail: "aaaaaaa@gmail.com",
+                        schoolEmail: "aaaaaaa@wustl.edu",
+                        phone: "999-999-9999",
+                        imageName: "dogProfile",
+                        qrName: "sampleQR",
+                        showPersonalEmail: true,
+                        showSchoolEmail: true,
+                        showPhone: true
+                    )
+
+                    if rememberMe {
+                        appState.saveUser(user)
+                    } else {
+                        appState.currentUser = user
+                    }
+                }) {
+                    Text("Login")
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 62)
+                        .background(Color.blue)
+                        .cornerRadius(24)
+                }
+                .padding(.horizontal, 32)
+
+                Spacer()
+
+                //Don't have an account part
+                HStack(spacing: 6) {
+                    Text("Don't have an account?")
+                        .foregroundColor(.white)
+                        .font(.system(size: 16))
+
+                    Button("Sign Up") {
+                        print("Sign Up tapped")
+                    }
+                    .foregroundColor(.blue)
+                    .font(.system(size: 16, weight: .medium))
+                }
+                .padding(.bottom, 30)
             }
         }
     }
 }
-
 
 //Remember Me Checkbox settings
 struct CheckBox: ToggleStyle {
@@ -142,10 +161,7 @@ struct CheckBox: ToggleStyle {
     }
 }
 
-
-
-
-
 #Preview {
     LoginView()
+        .environmentObject(AppState())
 }

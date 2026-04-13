@@ -9,9 +9,18 @@ import SwiftUI
 
 @main
 struct WUconnectApp: App {
+    @StateObject private var appState = AppState()
+
     var body: some Scene {
         WindowGroup {
-            LoginView()
+            NavigationStack {
+                if appState.currentUser != nil {
+                    ProfileView()
+                } else {
+                    LoginView()
+                }
+            }
+            .environmentObject(appState)
         }
     }
 }
