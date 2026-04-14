@@ -13,6 +13,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) var dismiss
 
     @State private var name = ""
+    @State private var major = ""
 
     @State private var personalEmail = ""
     @State private var schoolEmail = ""
@@ -71,7 +72,16 @@ struct SettingsView: View {
                                 text: $name,
                                 keyboardType: UIKeyboardType.default
                             )
+                            
+                            
+                            //major field
+                            SettingsInputField(
+                                title: "Major",
+                                text: $major,
+                                keyboardType: UIKeyboardType.default
+                            )
                         }
+    
 
                         //Edit contact info
                         VStack(alignment: .leading, spacing: 14) {
@@ -158,6 +168,7 @@ struct SettingsView: View {
                 }
                 .onAppear {
                     name = user.name
+                    major = user.major
                     personalEmail = user.personalEmail
                     schoolEmail = user.schoolEmail
                     phone = user.phone
@@ -174,6 +185,7 @@ struct SettingsView: View {
     
     func saveSettings() {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedMajor = major.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPersonalEmail = personalEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedSchoolEmail = schoolEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -183,6 +195,12 @@ struct SettingsView: View {
             return
         }
 
+        
+        if trimmedMajor.isEmpty {
+                    validationMessage = "Major cannot be empty."
+                    return
+                }
+        
         if !trimmedPersonalEmail.isEmpty && !isValidEmail(trimmedPersonalEmail) {
             validationMessage = "Please enter a valid personal email."
             return
@@ -207,7 +225,10 @@ struct SettingsView: View {
             return
         }
 
+        
+        //updating user info
         user.name = trimmedName
+        user.major = trimmedMajor
         user.personalEmail = trimmedPersonalEmail
         user.schoolEmail = trimmedSchoolEmail
         user.phone = trimmedPhone

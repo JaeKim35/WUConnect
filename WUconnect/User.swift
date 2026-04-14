@@ -9,9 +9,11 @@ import Foundation
 
 //Codable to enable saving and loading
 struct User: Codable {
+    
+    //using var for editable
     var name: String
     let schoolInfo: String
-    let major: String
+    var major: String
 
     var personalEmail: String
     var schoolEmail: String
