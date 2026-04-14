@@ -7,8 +7,8 @@
 
 import Foundation
 
-struct Contact: Identifiable {
-    let id = UUID()
+struct Contact: Identifiable, Codable, Equatable {
+    let id: UUID
     let name: String
     let schoolInfo: String
     let major: String
@@ -17,10 +17,40 @@ struct Contact: Identifiable {
     let phone: String
     let imageName: String
     let qrName: String
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        schoolInfo: String,
+        major: String,
+        personalEmail: String,
+        schoolEmail: String,
+        phone: String,
+        imageName: String,
+        qrName: String
+    ) {
+        self.id = id
+        self.name = name
+        self.schoolInfo = schoolInfo
+        self.major = major
+        self.personalEmail = personalEmail
+        self.schoolEmail = schoolEmail
+        self.phone = phone
+        self.imageName = imageName
+        self.qrName = qrName
+    }
 }
 
-struct ContactGroup: Identifiable {
-    let id = UUID()
+
+struct ContactGroup: Identifiable, Codable, Equatable {
+    let id: UUID
     var name: String
     var contacts: [Contact]
+    
+    init(id: UUID = UUID(), name: String, contacts: [Contact]) {
+        self.id = id
+        self.name = name
+        self.contacts = contacts
+    }
 }
+

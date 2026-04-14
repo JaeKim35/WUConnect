@@ -8,9 +8,12 @@
 import SwiftUI
 
 @main
+
 struct WUconnectApp: App {
     @StateObject private var appState = AppState()
-
+    @StateObject private var contactsStore = ContactsStore()
+    
+    
     var body: some Scene {
         WindowGroup {
             NavigationStack {
@@ -21,6 +24,7 @@ struct WUconnectApp: App {
                 }
             }
             .environmentObject(appState)
+            .environmentObject(contactsStore)
         }
     }
 }
