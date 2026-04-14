@@ -58,6 +58,13 @@ struct ProfileView: View {
                             Text(user.major)
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundColor(.white)
+                            
+                            
+                            //second major, only shows if user writes smth. Can be left empty
+                            if !user.secondMajor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {Text(user.secondMajor)
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
                         }
 
                         Spacer()
@@ -153,6 +160,8 @@ struct ProfileView: View {
         name: "Dog Dog",
         schoolInfo: "WashU - Senior",
         major: "Computer Science",
+        //second major can be empty
+        secondMajor: "",
         personalEmail: "aaaaaaa@gmail.com",
         schoolEmail: "aaaaaaa@wustl.edu",
         phone: "999-999-9999",

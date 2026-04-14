@@ -14,6 +14,7 @@ struct SettingsView: View {
 
     @State private var name = ""
     @State private var major = ""
+    @State private var secondMajor = ""
 
     @State private var personalEmail = ""
     @State private var schoolEmail = ""
@@ -78,6 +79,13 @@ struct SettingsView: View {
                             SettingsInputField(
                                 title: "Major",
                                 text: $major,
+                                keyboardType: UIKeyboardType.default
+                            )
+                            
+                            //second major(set to be optional)
+                            SettingsInputField(
+                                title: "Second Major",
+                                text: $secondMajor,
                                 keyboardType: UIKeyboardType.default
                             )
                         }
@@ -169,6 +177,7 @@ struct SettingsView: View {
                 .onAppear {
                     name = user.name
                     major = user.major
+                    secondMajor = user.secondMajor
                     personalEmail = user.personalEmail
                     schoolEmail = user.schoolEmail
                     phone = user.phone
@@ -186,6 +195,7 @@ struct SettingsView: View {
     func saveSettings() {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedMajor = major.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedSecondMajor = secondMajor.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPersonalEmail = personalEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedSchoolEmail = schoolEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPhone = phone.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -229,6 +239,7 @@ struct SettingsView: View {
         //updating user info
         user.name = trimmedName
         user.major = trimmedMajor
+        user.secondMajor = trimmedSecondMajor
         user.personalEmail = trimmedPersonalEmail
         user.schoolEmail = trimmedSchoolEmail
         user.phone = trimmedPhone

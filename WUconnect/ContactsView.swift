@@ -285,6 +285,7 @@ struct ContactsView_PreviewWrapper: View {
                 name: "Dog Dog",
                 schoolInfo: "WashU - Senior",
                 major: "Computer Science",
+                secondMajor: "",
                 personalEmail: "aaaaaaa@gmail.com",
                 schoolEmail: "aaaaaaa@wustl.edu",
                 phone: "999-999-9999",

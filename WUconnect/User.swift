@@ -14,7 +14,9 @@ struct User: Codable {
     var name: String
     let schoolInfo: String
     var major: String
+    var secondMajor: String
 
+    
     var personalEmail: String
     var schoolEmail: String
     var phone: String
