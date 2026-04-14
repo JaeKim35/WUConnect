@@ -18,3 +18,9 @@ struct Contact: Identifiable {
     let imageName: String
     let qrName: String
 }
+
+struct ContactGroup: Identifiable {
+    let id = UUID()
+    var name: String
+    var contacts: [Contact]
+}

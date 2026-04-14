@@ -11,48 +11,51 @@ struct ContactsView: View {
     @EnvironmentObject var appState: AppState
 
     //Fake data for now
-    let groupName = "CSE 4308"
-
-    let groupedContacts: [Contact] = [
-        Contact(
-            name: "Apple Apple",
-            schoolInfo: "WashU - Senior",
-            major: "Computer Science",
-            personalEmail: "appleapple@gmail.com",
-            schoolEmail: "appleapple@wustl.edu",
-            phone: "111-111-1111",
-            imageName: "dogProfile",
-            qrName: "sampleQR"
-        ),
-        Contact(
-            name: "Bear Bear",
-            schoolInfo: "WashU - Junior",
-            major: "Biology",
-            personalEmail: "bearbear@gmail.com",
-            schoolEmail: "bearbear@wustl.edu",
-            phone: "222-222-2222",
-            imageName: "dogProfile",
-            qrName: "sampleQR"
-        ),
-        Contact(
-            name: "Cat Cat",
-            schoolInfo: "WashU - Sophomore",
-            major: "Mathematics",
-            personalEmail: "catcat@gmail.com",
-            schoolEmail: "catcat@wustl.edu",
-            phone: "333-333-3333",
-            imageName: "dogProfile",
-            qrName: "sampleQR"
-        ),
-        Contact(
-            name: "Pear Pear",
-            schoolInfo: "WashU - Freshman",
-            major: "Physics",
-            personalEmail: "pearpear@gmail.com",
-            schoolEmail: "pearpear@wustl.edu",
-            phone: "444-444-4444",
-            imageName: "dogProfile",
-            qrName: "sampleQR"
+    @State private var contactGroups: [ContactGroup] = [
+        ContactGroup(
+            name: "CSE 4308",
+            contacts: [
+                Contact(
+                    name: "Apple Apple",
+                    schoolInfo: "WashU - Senior",
+                    major: "Computer Science",
+                    personalEmail: "appleapple@gmail.com",
+                    schoolEmail: "appleapple@wustl.edu",
+                    phone: "111-111-1111",
+                    imageName: "dogProfile",
+                    qrName: "sampleQR"
+                ),
+                Contact(
+                    name: "Bear Bear",
+                    schoolInfo: "WashU - Junior",
+                    major: "Biology",
+                    personalEmail: "bearbear@gmail.com",
+                    schoolEmail: "bearbear@wustl.edu",
+                    phone: "222-222-2222",
+                    imageName: "dogProfile",
+                    qrName: "sampleQR"
+                ),
+                Contact(
+                    name: "Cat Cat",
+                    schoolInfo: "WashU - Sophomore",
+                    major: "Mathematics",
+                    personalEmail: "catcat@gmail.com",
+                    schoolEmail: "catcat@wustl.edu",
+                    phone: "333-333-3333",
+                    imageName: "dogProfile",
+                    qrName: "sampleQR"
+                ),
+                Contact(
+                    name: "Pear Pear",
+                    schoolInfo: "WashU - Freshman",
+                    major: "Physics",
+                    personalEmail: "pearpear@gmail.com",
+                    schoolEmail: "pearpear@wustl.edu",
+                    phone: "444-444-4444",
+                    imageName: "dogProfile",
+                    qrName: "sampleQR"
+                )
+            ]
         )
     ]
 
@@ -101,6 +104,9 @@ struct ContactsView: View {
 
     @State private var searchText = ""
 
+    @State private var showCreateGroupSheet = false
+    @State private var newGroupName = ""
+
     var body: some View {
         ZStack {
             Color(red: 0.16, green: 0.15, blue: 0.18)
@@ -119,9 +125,9 @@ struct ContactsView: View {
                             .stroke(Color.white.opacity(0.8), lineWidth: 1.5)
                     )
                     .padding(.top, 24)
+
                 Spacer().frame(height: 22)
 
-                
                 //Search + create group area
                 HStack(spacing: 10) {
                     HStack(spacing: 8) {
@@ -138,7 +144,7 @@ struct ContactsView: View {
                     .cornerRadius(8)
 
                     Button(action: {
-                        print("Create Group tapped")
+                        showCreateGroupSheet = true
                     }) {
                         Text("Create Group")
                             .font(.system(size: 14, weight: .medium))
@@ -150,31 +156,43 @@ struct ContactsView: View {
                     }
                 }
                 .padding(.horizontal, 24)
+
                 Spacer().frame(height: 20)
 
-                
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
 
                         //Grouped contacts
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text(groupName)
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.white)
+                        ForEach(contactGroups) { group in
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text(group.name)
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.white)
 
-                            VStack(spacing: 0) {
-                                ForEach(groupedContacts) { contact in
-                                    ContactRow(contact: contact)
+                                if group.contacts.isEmpty {
+                                    Text("No contacts in this group")
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 14)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(Color(red: 0.38, green: 0.34, blue: 0.40).opacity(0.6))
+                                        .cornerRadius(16)
+                                } else {
+                                    VStack(spacing: 0) {
+                                        ForEach(group.contacts) { contact in
+                                            ContactRow(contact: contact)
 
-                                    if contact.id != groupedContacts.last?.id {
-                                        Divider()
-                                            .background(Color.white.opacity(0.15))
-                                            .padding(.horizontal, 14)
+                                            if contact.id != group.contacts.last?.id {
+                                                Divider()
+                                                    .background(Color.white.opacity(0.15))
+                                                    .padding(.horizontal, 14)
+                                            }
+                                        }
                                     }
+                                    .background(Color(red: 0.38, green: 0.34, blue: 0.40).opacity(0.6))
+                                    .cornerRadius(16)
                                 }
                             }
-                            .background(Color(red: 0.38, green: 0.34, blue: 0.40).opacity(0.6))
-                            .cornerRadius(16)
                         }
 
                         //All contacts
@@ -232,10 +250,16 @@ struct ContactsView: View {
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .navigationBarBackButtonHidden(true)
+        .sheet(isPresented: $showCreateGroupSheet) {
+            CreateGroupSheet(
+                groupName: $newGroupName,
+                onSave: {
+                    createGroup()
+                }
+            )
+        }
     }
 
-    
-    
     @ViewBuilder
     var profileButton: some View {
         if appState.currentUser != nil {
@@ -252,8 +276,26 @@ struct ContactsView: View {
             EmptyView()
         }
     }
-}
 
+    //Create a new group
+    func createGroup() {
+        let trimmedName = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmedName.isEmpty {
+            return
+        }
+
+        contactGroups.append(
+            ContactGroup(
+                name: trimmedName,
+                contacts: []
+            )
+        )
+
+        newGroupName = ""
+        showCreateGroupSheet = false
+    }
+}
 
 struct ContactRow: View {
     let contact: Contact
@@ -271,6 +313,37 @@ struct ContactRow: View {
     }
 }
 
+struct CreateGroupSheet: View {
+    @Binding var groupName: String
+    let onSave: () -> Void
+
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section(header: Text("Group Info")) {
+                    TextField("Group Name", text: $groupName)
+                }
+            }
+            .navigationTitle("Create Group")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Save") {
+                        onSave()
+                    }
+                }
+            }
+        }
+    }
+}
 
 struct ContactsView_PreviewWrapper: View {
     @StateObject private var appState = AppState()
@@ -298,8 +371,6 @@ struct ContactsView_PreviewWrapper: View {
         }
     }
 }
-
-
 
 #Preview {
     ContactsView_PreviewWrapper()
