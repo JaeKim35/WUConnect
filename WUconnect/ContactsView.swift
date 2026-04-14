@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ContactsView: View {
     @EnvironmentObject var appState: AppState
-
+    
     //Fake data for now
     @State private var contactGroups: [ContactGroup] = [
         ContactGroup(
@@ -58,7 +58,7 @@ struct ContactsView: View {
             ]
         )
     ]
-
+    
     let allContacts: [Contact] = [
         Contact(
             name: "Orange Orange",
@@ -101,19 +101,22 @@ struct ContactsView: View {
             qrName: "sampleQR"
         )
     ]
-
+    
     @State private var searchText = ""
-
+    
     @State private var showCreateGroupSheet = false
     @State private var newGroupName = ""
-
+    
+    @State private var showAddToGroupSheet = false
+    @State private var selectedContact: Contact? = nil
+    
     var body: some View {
         ZStack {
             Color(red: 0.16, green: 0.15, blue: 0.18)
                 .ignoresSafeArea()
-
+            
             VStack(spacing: 0) {
-
+                
                 //Top title area
                 Text("Contacts")
                     .font(.system(size: 22, weight: .medium))
@@ -125,15 +128,15 @@ struct ContactsView: View {
                             .stroke(Color.white.opacity(0.8), lineWidth: 1.5)
                     )
                     .padding(.top, 24)
-
+                
                 Spacer().frame(height: 22)
-
+                
                 //Search + create group area
                 HStack(spacing: 10) {
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass")
                             .foregroundColor(.gray)
-
+                        
                         TextField("Find", text: $searchText)
                             .foregroundColor(.white)
                             .textInputAutocapitalization(.never)
@@ -142,7 +145,7 @@ struct ContactsView: View {
                     .frame(height: 36)
                     .background(Color.black.opacity(0.25))
                     .cornerRadius(8)
-
+                    
                     Button(action: {
                         showCreateGroupSheet = true
                     }) {
@@ -156,19 +159,19 @@ struct ContactsView: View {
                     }
                 }
                 .padding(.horizontal, 24)
-
+                
                 Spacer().frame(height: 20)
-
+                
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-
+                        
                         //Grouped contacts
-                        ForEach(contactGroups) { group in
+                        ForEach(filteredGroups) { group in
                             VStack(alignment: .leading, spacing: 10) {
                                 Text(group.name)
                                     .font(.system(size: 18, weight: .medium))
                                     .foregroundColor(.white)
-
+                                
                                 if group.contacts.isEmpty {
                                     Text("No contacts in this group")
                                         .foregroundColor(.white.opacity(0.8))
@@ -180,8 +183,13 @@ struct ContactsView: View {
                                 } else {
                                     VStack(spacing: 0) {
                                         ForEach(group.contacts) { contact in
-                                            ContactRow(contact: contact)
-
+                                            GroupContactRow(
+                                                contact: contact,
+                                                onRemove: {
+                                                    removeContactFromGroup(contact, groupId: group.id)
+                                                }
+                                            )
+                                            
                                             if contact.id != group.contacts.last?.id {
                                                 Divider()
                                                     .background(Color.white.opacity(0.15))
@@ -194,24 +202,30 @@ struct ContactsView: View {
                                 }
                             }
                         }
-
+                        
                         //All contacts
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Contacts")
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundColor(.white)
-
+                            
                             VStack(spacing: 0) {
-                                ForEach(allContacts) { contact in
-                                    ContactRow(contact: contact)
-
-                                    if contact.id != allContacts.last?.id {
+                                ForEach(filteredAllContacts) { contact in
+                                    AllContactRow(
+                                        contact: contact,
+                                        onAddToGroup: {
+                                            selectedContact = contact
+                                            showAddToGroupSheet = true
+                                        }
+                                    )
+                                    
+                                    if contact.id != filteredAllContacts.last?.id {
                                         Divider()
                                             .background(Color.white.opacity(0.15))
                                             .padding(.horizontal, 14)
                                     }
                                 }
-
+                                
                                 Text("...")
                                     .foregroundColor(.white.opacity(0.8))
                                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -225,15 +239,15 @@ struct ContactsView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 6)
                 }
-
+                
                 Spacer()
-
+                
                 //Bottom buttons
                 HStack {
                     profileButton
-
+                    
                     Spacer()
-
+                    
                     NavigationLink(destination: CalendarView()) {
                         Text("Calendar")
                             .font(.system(size: 18, weight: .medium))
@@ -250,6 +264,8 @@ struct ContactsView: View {
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
         .navigationBarBackButtonHidden(true)
+        
+        
         .sheet(isPresented: $showCreateGroupSheet) {
             CreateGroupSheet(
                 groupName: $newGroupName,
@@ -258,8 +274,20 @@ struct ContactsView: View {
                 }
             )
         }
+        .sheet(isPresented: $showAddToGroupSheet) {
+            if let selectedContact {
+                AddToGroupSheet(
+                    contact: selectedContact,
+                    groups: contactGroups,
+                    onSelectGroup: { groupId in
+                        addContactToGroup(selectedContact, groupId: groupId)
+                    }
+                )
+            }
+        }
     }
-
+    
+    
     @ViewBuilder
     var profileButton: some View {
         if appState.currentUser != nil {
@@ -276,26 +304,183 @@ struct ContactsView: View {
             EmptyView()
         }
     }
-
+    
+    
+    //search text
+    var trimmedSearchText: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    //filter group contacts by group/contact name
+    var filteredGroups: [ContactGroup]{
+        if trimmedSearchText.isEmpty {
+            return contactGroups
+        }
+        
+        let lowercasedSearch = trimmedSearchText.lowercased()
+        
+        
+        return contactGroups.compactMap { group in
+            let groupNameMatches = group.name.lowercased().contains(lowercasedSearch)
+            
+            let matchingContacts = group.contacts.filter { contact in
+                contact.name.lowercased().contains(lowercasedSearch)
+            }
+            
+            if groupNameMatches {
+                return group
+            }
+            
+            if !matchingContacts.isEmpty {
+                return ContactGroup(
+                    name: group.name,
+                    contacts: matchingContacts
+                )
+            }
+            
+            return nil
+        }
+    }
+    
+    //filtering all contacts section by name
+    var filteredAllContacts: [Contact]{
+        if trimmedSearchText.isEmpty{
+            return allContacts
+        }
+        
+        let lowercasedSearch = trimmedSearchText.lowercased()
+        
+        return allContacts.filter{ contact in
+            contact.name.lowercased().contains(lowercasedSearch)
+        }
+    }
+    
+    
+    
     //Create a new group
     func createGroup() {
         let trimmedName = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
-
+        
         if trimmedName.isEmpty {
             return
         }
-
+        
         contactGroups.append(
             ContactGroup(
                 name: trimmedName,
                 contacts: []
             )
         )
-
+        
         newGroupName = ""
         showCreateGroupSheet = false
     }
+    
+    
+    //adding contact in a group
+    func addContactToGroup(_ contact: Contact, groupId: UUID){
+        guard let groupIndex = contactGroups.firstIndex(where: { $0.id == groupId}) else{
+            return
+        }
+        
+        let alreadyExists = contactGroups[groupIndex].contacts.contains(where: { $0.id == contact.id })
+        
+        if alreadyExists {
+            showAddToGroupSheet = false
+            return
+        }
+        
+        contactGroups[groupIndex].contacts.append(contact)
+        showAddToGroupSheet = false
+    }
+    
+    
+    //deleting contact in group
+    func removeContactFromGroup(_ contact: Contact, groupId: UUID) {
+            guard let groupIndex = contactGroups.firstIndex(where: { $0.id == groupId }) else {
+                return
+            }
+
+            guard let contactIndex = contactGroups[groupIndex].contacts.firstIndex(where: { $0.id == contact.id }) else {
+                return
+            }
+
+            contactGroups[groupIndex].contacts.remove(at: contactIndex)
+        }
+    
 }
+
+
+//Row used for contacts alreadty in group
+struct GroupContactRow: View {
+    let contact: Contact
+    let onRemove: () -> Void
+    
+    var body: some View{
+        HStack(spacing: 10) {
+            NavigationLink(destination: ContactDetailView(contact: contact)) {
+                Text(contact.name)
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: {
+                onRemove()
+            }) {
+                Text("Remove")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.red.opacity(0.9))
+                    .cornerRadius(8)
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+}
+
+
+//rows used for contacts in the "All Contacts" section
+struct AllContactRow: View {
+    let contact: Contact
+    let onAddToGroup: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            NavigationLink(destination: ContactDetailView(contact: contact)) {
+                Text(contact.name)
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 14)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: {
+                onAddToGroup()
+            }) {
+                Text("Add")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.9))
+                    .cornerRadius(8)
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+}
+
+
+
+
+
+
 
 struct ContactRow: View {
     let contact: Contact
@@ -313,6 +498,7 @@ struct ContactRow: View {
     }
 }
 
+//creating a new group
 struct CreateGroupSheet: View {
     @Binding var groupName: String
     let onSave: () -> Void
@@ -338,6 +524,41 @@ struct CreateGroupSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") {
                         onSave()
+                    }
+                }
+            }
+        }
+    }
+}
+
+//Sheet for choosing which group to add a contact into
+struct AddToGroupSheet: View {
+    let contact: Contact
+    let groups: [ContactGroup]
+    let onSelectGroup: (UUID) -> Void
+
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section(header: Text("Add \(contact.name) to Group")) {
+                    ForEach(groups) { group in
+                        Button(action: {
+                            onSelectGroup(group.id)
+                            dismiss()
+                        }) {
+                            Text(group.name)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Select Group")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
                     }
                 }
             }
