@@ -21,7 +21,7 @@ struct ContactsView: View {
     @State private var scannedUsername: String? = nil
     
     let database = Firestore.firestore()
-
+    
     var body: some View {
         ZStack {
             Color(red: 0.16, green: 0.15, blue: 0.18)
@@ -200,17 +200,16 @@ struct ContactsView: View {
                             }
                             
                             var newContacts = [] as [Contact]
-                            
+
                             if let contactsFetched = document.data()["contacts"] as? [[String: String]] {
                                 for contact in contactsFetched {
-                                    guard let username = contact["username"],
-                                          let name = contact["name"] else {
-                                        return
+                                    if let username = contact["username"],
+                                       let name = contact["name"] {
+                                        newContacts.append(Contact(username: username, name: name))
                                     }
-                                    newContacts.append(Contact(username: username, name: name))
                                 }
                             }
-                            
+
                             contactsStore.allContacts = newContacts
                             
                         }
@@ -238,7 +237,7 @@ struct ContactsView: View {
                                 guard let groupName = groupData["name"] as? String,
                                       let groupContacts = groupData["contacts"] as? [[String: Any]] else {
                                     continue
-                                    }
+                                }
                                 
                                 var newContactGroup = ContactGroup(name: groupName, contacts: [])
                                 
@@ -278,7 +277,7 @@ struct ContactsView: View {
                 scannedUsername = username
                 showQRScanner = false
                 // TODO: use scannedUsername to look up and add contact
-                print("Scanned username: \(username)")
+                addScannedContact(username: username)
             }
         }
     }
@@ -341,7 +340,111 @@ struct ContactsView: View {
         showCreateGroupSheet = false
     }
     
+    //QR scanning add to contacts
+    func addScannedContact(username: String) {
+        let trimmedUsername = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedUsername.isEmpty else {
+            return
+        }
+        
+        guard let currentUser = appState.currentUser else {
+            return
+        }
+        
+        // prevent adding yourself
+        if trimmedUsername.lowercased() == currentUser.username.lowercased() {
+            print("You cannot add yourself.")
+            return
+        }
+        
+        // prevent duplicates in local store
+        let alreadyExists = contactsStore.allContacts.contains {
+            $0.username.lowercased() == trimmedUsername.lowercased()
+        }
+        
+        if alreadyExists {
+            print("That contact already exists.")
+            return
+        }
+        
+        //find scanned user in Users collection
+        database
+            .collection("Users")
+            .whereField("username", isEqualTo: trimmedUsername)
+            .limit(to: 1)
+            .getDocuments { (querySnapshot, error) in
+                
+                if let error = error {
+                    print("There was an error finding the scanned user:", error)
+                    return
+                }
+                
+                guard let querySnapshot = querySnapshot,
+                      let userDocument = querySnapshot.documents.first else {
+                    print("No user found for scanned username.")
+                    return
+                }
+                
+                let userData = userDocument.data()
+                
+                guard let fetchedUsername = userData["username"] as? String,
+                      let fetchedName = userData["name"] as? String else {
+                    print("There was an error reading the scanned user data.")
+                    return
+                }
+                
+                let newContactData: [String: String] = [
+                    "username": fetchedUsername,
+                    "name": fetchedName
+                ]
+                
+                // find current user's Contacts document
+                database
+                    .collection("Contacts")
+                    .whereField("username", isEqualTo: currentUser.username)
+                    .limit(to: 1)
+                    .getDocuments { (querySnapshot, error) in
+                        
+                        if let error = error {
+                            print("There was an error finding the current user's contacts:", error)
+                            return
+                        }
+                        
+                        guard let querySnapshot = querySnapshot,
+                              let contactsDocument = querySnapshot.documents.first else {
+                            print("There was no Contacts document for the current user.")
+                            return
+                        }
+                        
+                        let documentRef = database.collection("Contacts").document(contactsDocument.documentID)
+                        
+                        documentRef.updateData([
+                            "contacts": FieldValue.arrayUnion([newContactData])
+                        ]) { error in
+                            
+                            if let error = error {
+                                print("There was an error saving the scanned contact:", error)
+                                return
+                            }
+                            
+                            // update local list immediately
+                            contactsStore.allContacts.append(
+                                Contact(
+                                    username: fetchedUsername,
+                                    name: fetchedName
+                                )
+                            )
+                            
+                            print("Scanned contact added successfully.")
+                        }
+                    }
+            }
+    }
+    
+    
 }
+
 
 
 //Row used for groups on the main contacts page
