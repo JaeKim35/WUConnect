@@ -56,15 +56,23 @@ struct ScheduleListView: View {
                                                 .stroke(Color.white.opacity(0.8), lineWidth: 1.2)
                                         )
 
-                                    Text(item.title)
-                                        .font(.system(size: 17, weight: .medium))
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 4)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(Color.white.opacity(0.8), lineWidth: 1.2)
-                                        )
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(item.title)
+                                            .font(.system(size: 17, weight: .medium))
+                                            .foregroundColor(.white)
+
+                                        if item.isShared, let sharedBy = item.sharedBy {
+                                            Text("Shared by \(sharedBy)")
+                                                .font(.system(size: 13, weight: .regular))
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.vertical, 4)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(item.isShared ? Color.blue.opacity(0.9) : Color.white.opacity(0.8), lineWidth: 1.2)
+                                    )
                                 }
                             }
                             .buttonStyle(.plain)
@@ -210,11 +218,24 @@ struct ScheduleItem: Identifiable {
     let id: UUID
     var time: String
     var title: String
+    var isShared: Bool
+    var sharedBy: String?
+    var ownerUsername: String?
 
-    init(id: UUID = UUID(), time: String, title: String) {
+    init(
+        id: UUID = UUID(),
+        time: String,
+        title: String,
+        isShared: Bool = false,
+        sharedBy: String? = nil,
+        ownerUsername: String? = nil
+    ) {
         self.id = id
         self.time = time
         self.title = title
+        self.isShared = isShared
+        self.sharedBy = sharedBy
+        self.ownerUsername = ownerUsername
     }
 }
 
@@ -265,8 +286,14 @@ enum ScheduleHelper {
         let newItem = ScheduleItem(time: timeString, title: newScheduleTitle)
 
         if let existingIndex = schedules.firstIndex(where: { $0.date == dateString }) {
-            schedules[existingIndex].items.append(newItem)
-            schedules[existingIndex].items.sort { $0.time < $1.time }
+            let alreadyExists = schedules[existingIndex].items.contains {
+                $0.time == timeString && $0.title == newScheduleTitle
+            }
+            
+            if !alreadyExists {
+                schedules[existingIndex].items.append(newItem)
+                schedules[existingIndex].items.sort { $0.time < $1.time }
+            }
         } else {
             schedules.append(
                 ScheduleDay(

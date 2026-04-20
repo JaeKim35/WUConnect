@@ -10,6 +10,7 @@ import SwiftUI
 struct AllSchedules: View {
     @Binding var schedules: [ScheduleDay]
     @Binding var selectedDates: Set<DateComponents>
+    let onSchedulesChanged: () -> Void
 
     @State private var isEditing = false
     @State private var selectedItemIds: Set<UUID> = []
@@ -47,6 +48,7 @@ struct AllSchedules: View {
                                 }
                                 .onDelete(perform: isEditing ? nil : { offsets in
                                     deleteItems(at: offsets, from: day)
+                                    onSchedulesChanged()
                                 })
                             } header: {
                                 Text(day.date)
@@ -160,6 +162,7 @@ struct AllSchedules: View {
                             newTime: updatedTime,
                             newTitle: updatedTitle
                         )
+                        onSchedulesChanged()
                     },
                     onDelete: {
                         ScheduleHelper.deleteScheduleItem(
@@ -168,6 +171,7 @@ struct AllSchedules: View {
                             dayId: day.id,
                             itemId: item.id
                         )
+                        onSchedulesChanged()
                     }
                 )
             ) {
@@ -234,6 +238,8 @@ struct AllSchedules: View {
                 itemId: itemId
             )
         }
+
+        onSchedulesChanged()
 
         selectedItemIds.removeAll()
         isEditing = false
