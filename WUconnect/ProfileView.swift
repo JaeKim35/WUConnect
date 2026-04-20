@@ -5,6 +5,7 @@
 //  Created by Jaeyeon Kim on 4/3/26.
 //
 
+
 import SwiftUI
 
 struct ProfileView: View {
@@ -32,7 +33,6 @@ struct ProfileView: View {
 
                         Spacer()
 
-                        //settings
                         NavigationLink(destination: SettingsView()) {
                             Image(systemName: "gearshape.fill")
                                 .font(.system(size: 28))
@@ -58,10 +58,9 @@ struct ProfileView: View {
                             Text(user.major)
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundColor(.white)
-                            
-                            
-                            //second major, only shows if user writes smth. Can be left empty
-                            if !user.secondMajor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {Text(user.secondMajor)
+
+                            if !user.secondMajor.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Text(user.secondMajor)
                                     .font(.system(size: 18, weight: .medium))
                                     .foregroundColor(.white)
                             }
@@ -69,13 +68,21 @@ struct ProfileView: View {
 
                         Spacer()
 
-                        //prof pic
-                        AsyncImage(url: URL(string: user.imageName)) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            ProgressView()
+                        // ✅ FIXED PROFILE IMAGE
+                        Group {
+                            if user.imageName.starts(with: "http") {
+                                AsyncImage(url: URL(string: user.imageName)) { image in
+                                    image
+                                        .resizable()
+                                        .scaledToFill()
+                                } placeholder: {
+                                    ProgressView()
+                                }
+                            } else {
+                                Image(user.imageName)
+                                    .resizable()
+                                    .scaledToFill()
+                            }
                         }
                         .frame(width: 130, height: 130)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
@@ -102,7 +109,7 @@ struct ProfileView: View {
 
                     Spacer().frame(height: 34)
 
-                    //QR title area
+                    //QR title
                     Text("QR Code")
                         .font(.system(size: 22, weight: .medium))
                         .foregroundColor(.white)
@@ -115,20 +122,37 @@ struct ProfileView: View {
 
                     Spacer().frame(height: 20)
 
-                    //QR image
-                    AsyncImage(url: URL(string: user.qrName)) { image in
-                        image
-                            .resizable()
-                            .scaledToFit()
-                    } placeholder: {
-                        ProgressView()
+                    // ✅ FIXED QR CODE DISPLAY
+                    Group {
+                        if user.qrName.starts(with: "http") {
+                            AsyncImage(url: URL(string: user.qrName)) { image in
+                                image
+                                    .resizable()
+                                    .interpolation(.none)
+                                    .scaledToFit()
+                            } placeholder: {
+                                ProgressView()
+                            }
+                        } else {
+                            VStack(spacing: 10) {
+                                Image(systemName: "qrcode")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 100, height: 100)
+                                    .foregroundColor(.gray)
+
+                                Text("QR not ready")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+                            }
+                        }
                     }
                     .frame(width: 230, height: 230)
                     .background(Color.white)
 
                     Spacer()
 
-                    //contacts & calendar buttons
+                    //Bottom buttons
                     HStack {
                         NavigationLink(destination: ContactsView()) {
                             Text("Contacts")
@@ -158,30 +182,5 @@ struct ProfileView: View {
             }
         }
         .navigationBarBackButtonHidden(true)
-    }
-}
-
-#Preview {
-    let appState = AppState()
-    appState.currentUser = User(
-        username: "Edgar",
-        name: "Dog Dog",
-        schoolInfo: "WashU - Senior",
-        major: "Computer Science",
-        //second major can be empty
-        secondMajor: "",
-        personalEmail: "aaaaaaa@gmail.com",
-        schoolEmail: "aaaaaaa@wustl.edu",
-        phone: "999-999-9999",
-        imageName: "dogProfile",
-        qrName: "sampleQR",
-        showPersonalEmail: true,
-        showSchoolEmail: true,
-        showPhone: true
-    )
-
-    return NavigationStack {
-        ProfileView()
-            .environmentObject(appState)
     }
 }

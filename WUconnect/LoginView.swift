@@ -19,6 +19,7 @@ struct LoginView: View {
     @State private var password = ""
     @State private var rememberMe = false
     @State private var wrongPasswordAlert = false
+    @State private var userNotFoundAlert = false
     @State private var usernameTakenAlert = false
     @State private var userCreatedAlert = false
     
@@ -38,11 +39,22 @@ struct LoginView: View {
                 Text("WUconnect")
                     .font(.system(size: 34, weight: .medium))
                     .foregroundColor(.white)
+                
+                Text("New Here?")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.top, 5)
+
+                Text("Enter a username and password, then tap Sign Up.")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 2)
 
                 Text("Login to your Account")
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
-                    .padding(.top, 20)
+                    .padding(.top, 5)
 
                 Spacer()
 
@@ -106,11 +118,35 @@ struct LoginView: View {
                                 return
                             }
                             
-                            let userFetched = querySnapshot!.documents.first!.data()
+                            guard let querySnapshot = querySnapshot,
+                                  let document = querySnapshot.documents.first else {
+                                userNotFoundAlert = true
+                                return
+                            }
+
+                            let userFetched = document.data()
+                            
+                            guard let storedPassword = userFetched["password"] as? String,
+                                  let fetchedUsername = userFetched["username"] as? String,
+                                  let fetchedName = userFetched["name"] as? String,
+                                  let fetchedSchoolInfo = userFetched["schoolInfo"] as? String,
+                                  let fetchedMajor = userFetched["major"] as? String,
+                                  let fetchedSecondMajor = userFetched["secondMajor"] as? String,
+                                  let fetchedPersonalEmail = userFetched["personalEmail"] as? String,
+                                  let fetchedSchoolEmail = userFetched["schoolEmail"] as? String,
+                                  let fetchedPhone = userFetched["phone"] as? String,
+                                  let fetchedImageName = userFetched["imageName"] as? String,
+                                  let fetchedQrName = userFetched["qrName"] as? String,
+                                  let fetchedShowPersonalEmail = userFetched["showPersonalEmail"] as? Bool,
+                                  let fetchedShowSchoolEmail = userFetched["showSchoolEmail"] as? Bool,
+                                  let fetchedShowPhone = userFetched["showPhone"] as? Bool else {
+                                print("There was an error reading the user data.")
+                                return
+                            }
                             
                             do {
                                 
-                                let correctPassword = try BCrypt.Hash.verify(message: password, matches: userFetched["password"] as! String)
+                                let correctPassword = try BCrypt.Hash.verify(message: password, matches: storedPassword)
                                 
                                 if !correctPassword {
                                     wrongPasswordAlert = true
@@ -118,19 +154,19 @@ struct LoginView: View {
                                 }
                                 
                                 let user = User(
-                                    username: userFetched["username"] as! String,
-                                    name: userFetched["name"] as! String,
-                                    schoolInfo: userFetched["schoolInfo"] as! String,
-                                    major: userFetched["major"] as! String,
-                                    secondMajor: userFetched["secondMajor"] as! String,
-                                    personalEmail: userFetched["personalEmail"] as! String,
-                                    schoolEmail: userFetched["schoolEmail"] as! String,
-                                    phone: userFetched["phone"] as! String,
-                                    imageName: userFetched["imageName"] as! String,
-                                    qrName: userFetched["qrName"] as! String,
-                                    showPersonalEmail: userFetched["showPersonalEmail"] as! Bool,
-                                    showSchoolEmail: userFetched["showSchoolEmail"] as! Bool,
-                                    showPhone: userFetched["showPhone"] as! Bool
+                                    username: fetchedUsername,
+                                    name: fetchedName,
+                                    schoolInfo: fetchedSchoolInfo,
+                                    major: fetchedMajor,
+                                    secondMajor: fetchedSecondMajor,
+                                    personalEmail: fetchedPersonalEmail,
+                                    schoolEmail: fetchedSchoolEmail,
+                                    phone: fetchedPhone,
+                                    imageName: fetchedImageName,
+                                    qrName: fetchedQrName,
+                                    showPersonalEmail: fetchedShowPersonalEmail,
+                                    showSchoolEmail: fetchedShowSchoolEmail,
+                                    showPhone: fetchedShowPhone
                                 )
                                 
                                 if rememberMe {
@@ -161,6 +197,11 @@ struct LoginView: View {
                 } message: {
                     Text("Please try again.")
                 }
+                .alert("User Not Found", isPresented: $userNotFoundAlert) {
+                    Button("OK", role: .cancel) { }
+                } message: {
+                    Text("No account exists with this username.")
+                }
 
                 Spacer()
 
@@ -183,7 +224,12 @@ struct LoginView: View {
                                     return
                                 }
                                 
-                                if querySnapshot!.count == 1 {
+                                guard let querySnapshot = querySnapshot else {
+                                    print("There was an error getting the users.")
+                                    return
+                                }
+                                
+                                if querySnapshot.count == 1 {
                                     usernameTakenAlert = true
                                     return
                                 }
@@ -197,14 +243,14 @@ struct LoginView: View {
                                         .addDocument(data: [
                                             "username": username,
                                             "password": hashedPassword.makeString(),
-                                            "name": "Dog Dog",
-                                            "schoolInfo": "WashU - Senior",
-                                            "major": "Computer Science",
+                                            "name": "Name?",
+                                            "schoolInfo": "WashU - Academic Year?",
+                                            "major": "Major?",
                                             "secondMajor": "",
-                                            "personalEmail": "aaaaaaa@gmail.com",
-                                            "schoolEmail": "aaaaaaa@wustl.edu",
-                                            "phone": "999-999-9999",
-                                            "imageName": "",
+                                            "personalEmail": "Personal Email?",
+                                            "schoolEmail": "School Email?",
+                                            "phone": "Phone Number?",
+                                            "imageName": "dogProfile",
                                             "qrName": "",
                                             "showPersonalEmail": true,
                                             "showSchoolEmail": true,
@@ -213,49 +259,68 @@ struct LoginView: View {
                                     
                                     let document = try QRCode.Document(utf8String: username)
                                     
-                                    let profilePicture = UIImage(named: "dogProfile")?.jpegData(compressionQuality: 0.8)
-                                    
-                                    let profilePictureReference = storage.reference().child("\(username)_PFP.jpg")
-                                    
-                                    profilePictureReference.putData(profilePicture!) { _, error in
-                                    
-                                        if let error = error {
-                                            print("There was an error uploading the profile picture:", error)
-                                            return
-                                        }
+                                    if let profilePicture = UIImage(named: "dogProfile")?.jpegData(compressionQuality: 0.8) {
                                         
-                                        profilePictureReference.downloadURL() { url, error in
+                                        let profilePictureReference = storage.reference().child("\(username)_PFP.jpg")
+                                        
+                                        profilePictureReference.putData(profilePicture) { _, error in
                                             
                                             if let error = error {
-                                                print("There was an error getting the URL:", error)
+                                                print("There was an error uploading the profile picture:", error)
                                                 return
                                             }
                                             
-                                            documentID.updateData(["imageName": url!.absoluteString])
+                                            profilePictureReference.downloadURL() { url, error in
+                                                
+                                                if let error = error {
+                                                    print("There was an error getting the URL:", error)
+                                                    return
+                                                }
+                                                
+                                                guard let url = url else {
+                                                    print("There was an error getting the URL.")
+                                                    return
+                                                }
+                                                
+                                                documentID.updateData(["imageName": url.absoluteString])
+                                                
+                                                
+                                            }
                                             
                                         }
-                                        
                                     }
                                     
-                                    let QRCode = try document.pngData(dimension: 400)
+                                    let qrCodeData = try document.pngData(dimension: 400)
                                     
-                                    let QRCodeReference = storage.reference().child("\(username)_QR.png")
+                                    let qrCodeReference = storage.reference().child("\(username)_QR.png")
                                     
-                                    QRCodeReference.putData(QRCode) { _, error in
+                                    qrCodeReference.putData(qrCodeData) { _, error in
                                         
                                         if let error = error {
                                             print("There was an error uploading the QR code:", error)
                                             return
                                         }
                                         
-                                        QRCodeReference.downloadURL() { url, error in
+                                        qrCodeReference.downloadURL() { url, error in
                                             
                                             if let error = error {
                                                 print("There was an error getting the URL:", error)
                                                 return
                                             }
                                             
-                                            documentID.updateData(["qrName": url!.absoluteString])
+                                            guard let url = url else {
+                                                print("There was an error getting the URL.")
+                                                return
+                                            }
+                                            
+                                            documentID.updateData(["qrName": url.absoluteString])
+
+                                            if var currentUser = appState.currentUser {
+                                                currentUser.qrName = url.absoluteString
+                                                appState.updateUser(currentUser)
+                                            }
+                                            
+                                            
                                             
                                         }
                                         

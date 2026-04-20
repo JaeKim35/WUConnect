@@ -59,12 +59,16 @@ struct SettingsView: View {
                                         Image(uiImage: picked)
                                             .resizable()
                                             .scaledToFill()
-                                    } else {
+                                    } else if user.imageName.starts(with: "http") {
                                         AsyncImage(url: URL(string: user.imageName)) { image in
                                             image.resizable().scaledToFill()
                                         } placeholder: {
                                             ProgressView()
                                         }
+                                    } else {
+                                        Image(user.imageName)
+                                            .resizable()
+                                            .scaledToFill()
                                     }
                                 }
                                 .frame(width: 90, height: 90)
@@ -96,12 +100,20 @@ struct SettingsView: View {
                                     ImagePickerView(sourceType: imageSourceType) { image in
                                         
                                         selectedUIImage = image
-                                        
                                         selectedImageData = image.jpegData(compressionQuality: 0.8)
                                         
-                                        let profilePictureReference = storage.reference().child("\(appState.currentUser!.username)_PFP.jpg")
+                                        guard let currentUser = appState.currentUser else {
+                                            return
+                                        }
                                         
-                                        profilePictureReference.putData(selectedImageData!) { _, error in
+                                        guard let imageData = selectedImageData else {
+                                            print("There was an error getting the selected image data.")
+                                            return
+                                        }
+                                        
+                                        let profilePictureReference = storage.reference().child("\(currentUser.username)_PFP.jpg")
+                                        
+                                        profilePictureReference.putData(imageData) { _, error in
                                         
                                             if let error = error {
                                                 print("There was an error uploading the profile picture:", error)
@@ -115,9 +127,14 @@ struct SettingsView: View {
                                                     return
                                                 }
                                                 
+                                                guard let url = url else {
+                                                    print("There was an error getting the URL.")
+                                                    return
+                                                }
+                                                
                                                 database
                                                     .collection("Users")
-                                                    .whereField("username", isEqualTo: appState.currentUser!.username)
+                                                    .whereField("username", isEqualTo: currentUser.username)
                                                     .getDocuments { (querySnapshot, error) in
                                                         
                                                         if let error = error {
@@ -125,15 +142,21 @@ struct SettingsView: View {
                                                             return
                                                         }
                                                         
-                                                        let documentID = database.collection("users").document(querySnapshot!.documents.first!.documentID)
+                                                        guard let querySnapshot = querySnapshot,
+                                                              let document = querySnapshot.documents.first else {
+                                                            print("There was an error finding the user document.")
+                                                            return
+                                                        }
                                                         
-                                                        documentID.updateData(["imageName": url!.absoluteString])
+                                                        let documentID = database.collection("Users").document(document.documentID)
+                                                        
+                                                        documentID.updateData(["imageName": url.absoluteString])
                                                         
                                                         guard var user = appState.currentUser else {
                                                             return
                                                         }
                                                         
-                                                        user.imageName = url!.absoluteString
+                                                        user.imageName = url.absoluteString
                                                         
                                                         appState.updateUser(user)
                                                         
@@ -288,6 +311,7 @@ struct SettingsView: View {
     
     func saveSettings() {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedSchoolInfo = schoolInfo.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedMajor = major.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedSecondMajor = secondMajor.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedPersonalEmail = personalEmail.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -301,9 +325,9 @@ struct SettingsView: View {
 
         
         if trimmedMajor.isEmpty {
-                    validationMessage = "Major cannot be empty."
-                    return
-                }
+            validationMessage = "Major cannot be empty."
+            return
+        }
         
         if !trimmedPersonalEmail.isEmpty && !isValidEmail(trimmedPersonalEmail) {
             validationMessage = "Please enter a valid personal email."
@@ -331,7 +355,7 @@ struct SettingsView: View {
         
         database
             .collection("Users")
-            .whereField("username", isEqualTo: appState.currentUser!.username)
+            .whereField("username", isEqualTo: user.username)
             .getDocuments { (querySnapshot, error) in
                 
                 if let error = error {
@@ -339,16 +363,22 @@ struct SettingsView: View {
                     return
                 }
                 
-                let documentID = database.collection("Users").document(querySnapshot!.documents.first!.documentID)
+                guard let querySnapshot = querySnapshot,
+                      let document = querySnapshot.documents.first else {
+                    print("There was an error finding the user document.")
+                    return
+                }
+                
+                let documentID = database.collection("Users").document(document.documentID)
                 
                 documentID.updateData([
-                    "name": name,
-                    "schoolInfo": schoolInfo,
-                    "major": major,
-                    "secondMajor": secondMajor,
-                    "personalEmail": personalEmail,
-                    "schoolEmail": schoolEmail,
-                    "phone": phone,
+                    "name": trimmedName,
+                    "schoolInfo": trimmedSchoolInfo,
+                    "major": trimmedMajor,
+                    "secondMajor": trimmedSecondMajor,
+                    "personalEmail": trimmedPersonalEmail,
+                    "schoolEmail": trimmedSchoolEmail,
+                    "phone": trimmedPhone,
                     "showPersonalEmail": showPersonalEmail,
                     "showSchoolEmail": showSchoolEmail,
                     "showPhone": showPhone
@@ -454,7 +484,11 @@ struct ImagePickerView: UIViewControllerRepresentable {
 
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            let image = (info[.editedImage] ?? info[.originalImage]) as! UIImage
+            guard let image = (info[.editedImage] ?? info[.originalImage]) as? UIImage else {
+                picker.dismiss(animated: true)
+                return
+            }
+
             onImageSelected(image)
             picker.dismiss(animated: true)
         }

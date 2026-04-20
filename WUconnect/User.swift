@@ -14,7 +14,7 @@ struct User: Codable {
     
     //using var for editable
     var name: String
-    let schoolInfo: String
+    var schoolInfo: String
     var major: String
     var secondMajor: String
 
@@ -24,7 +24,7 @@ struct User: Codable {
     var phone: String
 
     var imageName: String
-    let qrName: String
+    var qrName: String
 
     var showPersonalEmail: Bool
     var showSchoolEmail: Bool

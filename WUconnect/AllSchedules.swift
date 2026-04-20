@@ -33,7 +33,8 @@ struct AllSchedules: View {
                     Text("No schedules")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(.white.opacity(0.8))
-                        .padding(.horizontal, 24)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 20)
 
                     Spacer()
                 } else {

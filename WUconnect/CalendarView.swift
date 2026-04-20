@@ -9,26 +9,7 @@ import SwiftUI
 
 struct CalendarView: View {
     @EnvironmentObject var appState: AppState
-
-    //fake data for testing
-    static let initialSchedules: [ScheduleDay] = [
-        ScheduleDay(
-            date: "04/08/2026",
-            items: [
-                ScheduleItem(time: "13:00", title: "Exam Review")
-            ]
-        ),
-        ScheduleDay(
-            date: "04/20/2026",
-            items: [
-                ScheduleItem(time: "13:00", title: "Presentation"),
-                ScheduleItem(time: "16:00", title: "Study Session")
-            ]
-        )
-    ]
-
     
-    //some fake data for now
     @State private var selectedDates: Set<DateComponents>
     @State private var schedules: [ScheduleDay]
 
@@ -38,14 +19,14 @@ struct CalendarView: View {
     @State private var newScheduleTime = Date()
     @State private var lastTappedDate: Date? = nil
 
+    
+    
     init() {
-        let startingSchedules = Self.initialSchedules
-
-        _schedules = State(initialValue: startingSchedules)
-        _selectedDates = State(
-            initialValue: ScheduleHelper.makeSelectedDates(from: startingSchedules)
-        )
+        _schedules = State(initialValue: [])
+        _selectedDates = State(initialValue: [])
     }
+    
+    
 
     var body: some View {
         ZStack {
@@ -93,7 +74,7 @@ struct CalendarView: View {
                     MultiDatePicker("Select Dates", selection: $selectedDates)
                         .padding()
                         .tint(.yellow)
-                        .background(Color.white)
+                        .background(Color(red: 0.20, green: 0.19, blue: 0.23))
                         .cornerRadius(12)
                         .labelsHidden()
                         .onChange(of: selectedDates) { oldValue, newValue in
@@ -290,41 +271,4 @@ struct CalendarView: View {
         newScheduleTime = Date()
         showAddScheduleSheet = false
     }
-}
-
-
-
-struct CalendarView_PreviewWrapper: View {
-    @StateObject private var appState = AppState()
-
-    var body: some View {
-        NavigationStack {
-            CalendarView()
-                .environmentObject(appState)
-        }
-        .onAppear {
-            appState.currentUser = User(
-                username: "Edgar",
-                name: "Dog Dog",
-                schoolInfo: "WashU - Senior",
-                major: "Computer Science",
-                secondMajor: "",
-                personalEmail: "aaaaaaa@gmail.com",
-                schoolEmail: "aaaaaaa@wustl.edu",
-                phone: "999-999-9999",
-                imageName: "dogProfile",
-                qrName: "sampleQR",
-                showPersonalEmail: true,
-                showSchoolEmail: true,
-                showPhone: true
-            )
-        }
-    }
-}
-
-
-
-
-#Preview {
-    CalendarView_PreviewWrapper()
 }
