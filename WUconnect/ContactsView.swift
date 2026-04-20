@@ -216,7 +216,7 @@ struct ContactsView: View {
                         }
                     
                     database
-                        .collection("ContactGroups")
+                        .collection("Contact Groups")
                         .whereField("username", isEqualTo: user.username)
                         .getDocuments { (querySnapshot, error) in
                             
@@ -336,9 +336,21 @@ struct ContactsView: View {
     
     //Create a new group
     func createGroup() {
+        
         contactsStore.createGroup(name: newGroupName)
         newGroupName = ""
         showCreateGroupSheet = false
+        
+        if let user = appState.currentUser {
+            database
+                .collection("Contact Groups")
+                .addDocument(data: [
+                    "username": user.username,
+                    "name": newGroupName,
+                    "contacts": []
+                ])
+        }
+        
     }
     
 }
