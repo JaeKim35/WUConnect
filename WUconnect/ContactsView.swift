@@ -337,8 +337,6 @@ struct ContactsView: View {
     func createGroup() {
         
         contactsStore.createGroup(name: newGroupName)
-        newGroupName = ""
-        showCreateGroupSheet = false
         
         if let user = appState.currentUser {
             database
@@ -349,6 +347,10 @@ struct ContactsView: View {
                     "contacts": []
                 ])
         }
+        
+        newGroupName = ""
+        
+        showCreateGroupSheet = false
         
     }
     
