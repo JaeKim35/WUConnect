@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct GroupDetailView: View {
     @EnvironmentObject var contactsStore: ContactsStore
@@ -90,7 +91,7 @@ struct GroupDetailView: View {
                     //Manage members button
                     ToolbarItem(placement: .topBarTrailing) {
                         NavigationLink(
-                            destination: GroupMembersView(groupId: groupId)
+                            destination: GroupMembersView(groupId: groupId, groupName: group.name)
                         ) {
                             Text("Manage")
                                 .font(.system(size: 16, weight: .medium))
@@ -99,7 +100,7 @@ struct GroupDetailView: View {
                     }
                 }
                 .sheet(isPresented: $showEditGroupSheet) {
-                    EditGroupSheet(groupId: groupId)
+                    EditGroupSheet(groupId: groupId, groupName: group.name)
                         .environmentObject(contactsStore)
                 }
             } else {
@@ -137,12 +138,17 @@ struct GroupMemberRow: View {
 
 //Sheet for renaming or deleting a group
 struct EditGroupSheet: View {
+    
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var contactsStore: ContactsStore
     @Environment(\.dismiss) var dismiss
 
     let groupId: UUID
+    let groupName: String
 
     @State private var editedGroupName = ""
+    
+    let database = Firestore.firestore()
 
     var body: some View {
         NavigationStack {
@@ -153,18 +159,79 @@ struct EditGroupSheet: View {
 
                 Section {
                     Button("Save Name Change") {
+                        
                         contactsStore.renameGroup(
                             groupId: groupId,
                             newName: editedGroupName
                         )
+                        
+                        if let user = appState.currentUser {
+                            
+                            database
+                                .collection("Contact Groups")
+                                .whereField("username", isEqualTo: user.username)
+                                .whereField("name", isEqualTo: groupName)
+                                .getDocuments { (querySnapshot, error) in
+                                    
+                                    if let error = error {
+                                        print("There was an error getting the contact groups:", error)
+                                        return
+                                    }
+                                    
+                                    guard let querySnapshot = querySnapshot,
+                                          let document = querySnapshot.documents.first else {
+                                        print("There was an error finding the contact group document.")
+                                        return
+                                    }
+                                    
+                                    let documentID = database.collection("Contact Groups").document(document.documentID)
+                                    
+                                    documentID.updateData(["name": editedGroupName])
+                                    
+                                }
+                            
+                        }
+                        
+                        
                         dismiss()
+                        
                     }
                 }
 
                 Section {
                     Button(role: .destructive) {
+                        
                         contactsStore.deleteGroup(groupId: groupId)
+                        
+                        if let user = appState.currentUser {
+                            
+                            database
+                                .collection("Contact Groups")
+                                .whereField("username", isEqualTo: user.username)
+                                .whereField("name", isEqualTo: groupName)
+                                .getDocuments { (querySnapshot, error) in
+                                    
+                                    if let error = error {
+                                        print("There was an error getting the contact groups:", error)
+                                        return
+                                    }
+                                    
+                                    guard let querySnapshot = querySnapshot,
+                                          let document = querySnapshot.documents.first else {
+                                        print("There was an error finding the contact group document.")
+                                        return
+                                    }
+                                    
+                                    let documentID = database.collection("Contact Groups").document(document.documentID)
+                                    
+                                    documentID.delete()
+                                    
+                                }
+                            
+                        }
+                        
                         dismiss()
+                        
                     } label: {
                         Text("Delete Group")
                     }

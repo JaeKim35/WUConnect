@@ -6,15 +6,21 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct GroupMembersView: View {
+    
+    @EnvironmentObject var appState: AppState
     @EnvironmentObject var contactsStore: ContactsStore
     @Environment(\.dismiss) var dismiss
 
     let groupId: UUID
+    let groupName: String
 
     //Track selected contacts (multi-select)
     @State private var selectedContacts: Set<UUID> = []
+    
+    let database = Firestore.firestore()
 
     var body: some View {
         ZStack {
@@ -132,6 +138,7 @@ struct GroupMembersView: View {
 
     //Save the full member list back into the group
     func saveGroupMembers() {
+        
         let updatedContacts = contactsStore.allContacts.filter { contact in
             selectedContacts.contains(contact.id)
         }
@@ -140,6 +147,37 @@ struct GroupMembersView: View {
             groupId: groupId,
             newContacts: updatedContacts
         )
+        
+        let selectedUsernames = contactsStore.allContacts
+            .filter { selectedContacts.contains($0.id) }
+            .map { ["username": $0.username, "name": $0.name] }
+        
+        if let user = appState.currentUser {
+            
+            database
+                .collection("Contact Groups")
+                .whereField("username", isEqualTo: user.username)
+                .whereField("name", isEqualTo: groupName)
+                .getDocuments { (querySnapshot, error) in
+                    
+                    if let error = error {
+                        print("There was an error getting the contact groups:", error)
+                        return
+                    }
+                    
+                    guard let querySnapshot = querySnapshot,
+                          let document = querySnapshot.documents.first else {
+                        print("There was an error finding the contact group document.")
+                        return
+                    }
+                    
+                    let documentID = database.collection("Contact Groups").document(document.documentID)
+                    
+                    documentID.updateData(["contacts": selectedUsernames])
+                    
+                }
+            
+        }
 
         dismiss()
     }
