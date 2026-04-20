@@ -7,6 +7,10 @@
 
 
 import SwiftUI
+import FirebaseFirestore
+import FirebaseStorage
+import BCrypt
+import QRCode
 
 struct LoginView: View {
     @EnvironmentObject var appState: AppState
@@ -14,6 +18,12 @@ struct LoginView: View {
     @State private var username = ""
     @State private var password = ""
     @State private var rememberMe = false
+    @State private var wrongPasswordAlert = false
+    @State private var usernameTakenAlert = false
+    @State private var userCreatedAlert = false
+    
+    let database = Firestore.firestore()
+    let storage = Storage.storage()
 
     var body: some View {
         ZStack {
@@ -84,28 +94,57 @@ struct LoginView: View {
 
                 //Login Button
                 Button(action: {
-                    print("Login tapped")
-
-                    let user = User(
-                        name: "Dog Dog",
-                        schoolInfo: "WashU - Senior",
-                        major: "Computer Science",
-                        secondMajor: "",
-                        personalEmail: "aaaaaaa@gmail.com",
-                        schoolEmail: "aaaaaaa@wustl.edu",
-                        phone: "999-999-9999",
-                        imageName: "dogProfile",
-                        qrName: "sampleQR",
-                        showPersonalEmail: true,
-                        showSchoolEmail: true,
-                        showPhone: true
-                    )
-
-                    if rememberMe {
-                        appState.saveUser(user)
-                    } else {
-                        appState.currentUser = user
-                    }
+                    
+                    database
+                        .collection("Users")
+                        .whereField("username", isEqualTo: username)
+                        .limit(to: 1)
+                        .getDocuments { (querySnapshot, error) in
+                            
+                            if let error = error {
+                                print("There was an error getting the users:", error)
+                                return
+                            }
+                            
+                            let userFetched = querySnapshot!.documents.first!.data()
+                            
+                            do {
+                                
+                                let correctPassword = try BCrypt.Hash.verify(message: password, matches: userFetched["password"] as! String)
+                                
+                                if !correctPassword {
+                                    wrongPasswordAlert = true
+                                    return
+                                }
+                                
+                                let user = User(
+                                    username: userFetched["username"] as! String,
+                                    name: userFetched["name"] as! String,
+                                    schoolInfo: userFetched["schoolInfo"] as! String,
+                                    major: userFetched["major"] as! String,
+                                    secondMajor: userFetched["secondMajor"] as! String,
+                                    personalEmail: userFetched["personalEmail"] as! String,
+                                    schoolEmail: userFetched["schoolEmail"] as! String,
+                                    phone: userFetched["phone"] as! String,
+                                    imageName: userFetched["imageName"] as! String,
+                                    qrName: userFetched["qrName"] as! String,
+                                    showPersonalEmail: userFetched["showPersonalEmail"] as! Bool,
+                                    showSchoolEmail: userFetched["showSchoolEmail"] as! Bool,
+                                    showPhone: userFetched["showPhone"] as! Bool
+                                )
+                                
+                                if rememberMe {
+                                    appState.saveUser(user)
+                                } else {
+                                    appState.currentUser = user
+                                }
+                                
+                            } catch {
+                                print("There was an error checking the password hash:", error)
+                            }
+                            
+                        }
+                    
                 }) {
                     Text("Login")
                         .font(.system(size: 22, weight: .medium))
@@ -116,6 +155,12 @@ struct LoginView: View {
                         .cornerRadius(24)
                 }
                 .padding(.horizontal, 32)
+                .disabled(username.isEmpty || password.isEmpty)
+                .alert("Wrong Password!", isPresented: $wrongPasswordAlert) {
+                    Button("OK", role: ButtonRole.cancel) { }
+                } message: {
+                    Text("Please try again.")
+                }
 
                 Spacer()
 
@@ -126,10 +171,119 @@ struct LoginView: View {
                         .font(.system(size: 16))
 
                     Button("Sign Up") {
-                        print("Sign Up tapped")
+                        
+                        database
+                            .collection("Users")
+                            .whereField("username", isEqualTo: username)
+                            .limit(to: 1)
+                            .getDocuments { (querySnapshot, error) in
+                                
+                                if let error = error {
+                                    print("There was an error getting the users:", error)
+                                    return
+                                }
+                                
+                                if querySnapshot!.count == 1 {
+                                    usernameTakenAlert = true
+                                    return
+                                }
+                                
+                                do {
+                                    
+                                    let hashedPassword = try BCrypt.Hash.make(message: password)
+                                    
+                                    let documentID = database
+                                        .collection("Users")
+                                        .addDocument(data: [
+                                            "username": username,
+                                            "password": hashedPassword.makeString(),
+                                            "name": "Dog Dog",
+                                            "schoolInfo": "WashU - Senior",
+                                            "major": "Computer Science",
+                                            "secondMajor": "",
+                                            "personalEmail": "aaaaaaa@gmail.com",
+                                            "schoolEmail": "aaaaaaa@wustl.edu",
+                                            "phone": "999-999-9999",
+                                            "imageName": "",
+                                            "qrName": "",
+                                            "showPersonalEmail": true,
+                                            "showSchoolEmail": true,
+                                            "showPhone": true
+                                        ])
+                                    
+                                    let document = try QRCode.Document(utf8String: username)
+                                    
+                                    let profilePicture = UIImage(named: "dogProfile")?.jpegData(compressionQuality: 0.8)
+                                    
+                                    let profilePictureReference = storage.reference().child("\(username)_PFP.jpg")
+                                    
+                                    profilePictureReference.putData(profilePicture!) { _, error in
+                                    
+                                        if let error = error {
+                                            print("There was an error uploading the profile picture:", error)
+                                            return
+                                        }
+                                        
+                                        profilePictureReference.downloadURL() { url, error in
+                                            
+                                            if let error = error {
+                                                print("There was an error getting the URL:", error)
+                                                return
+                                            }
+                                            
+                                            documentID.updateData(["imageName": url!.absoluteString])
+                                            
+                                        }
+                                        
+                                    }
+                                    
+                                    let QRCode = try document.pngData(dimension: 400)
+                                    
+                                    let QRCodeReference = storage.reference().child("\(username)_QR.png")
+                                    
+                                    QRCodeReference.putData(QRCode) { _, error in
+                                        
+                                        if let error = error {
+                                            print("There was an error uploading the QR code:", error)
+                                            return
+                                        }
+                                        
+                                        QRCodeReference.downloadURL() { url, error in
+                                            
+                                            if let error = error {
+                                                print("There was an error getting the URL:", error)
+                                                return
+                                            }
+                                            
+                                            documentID.updateData(["qrName": url!.absoluteString])
+                                            
+                                        }
+                                        
+                                    }
+                                    
+                                    userCreatedAlert = true
+                                    
+                                } catch {
+                                    print("There was an error hashing the password or generating the QR code:", error)
+                                }
+                                
+                            }
+                        
                     }
                     .foregroundColor(.blue)
                     .font(.system(size: 16, weight: .medium))
+                    .disabled(username.isEmpty || password.isEmpty)
+                    .alert("Username Taken!", isPresented: $usernameTakenAlert) {
+                        Button("OK", role: ButtonRole.cancel) { }
+                    } message: {
+                        Text("Please choose a different username.")
+                    }
+                    .alert("Username Created!", isPresented: $userCreatedAlert) {
+                        Button("OK", role: ButtonRole.cancel) { }
+                    } message: {
+                        Text("You can log in now.")
+                    }
+                    
                 }
                 .padding(.bottom, 30)
             }

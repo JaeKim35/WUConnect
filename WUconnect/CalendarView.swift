@@ -304,6 +304,7 @@ struct CalendarView_PreviewWrapper: View {
         }
         .onAppear {
             appState.currentUser = User(
+                username: "Edgar",
                 name: "Dog Dog",
                 schoolInfo: "WashU - Senior",
                 major: "Computer Science",

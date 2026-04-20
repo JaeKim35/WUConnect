@@ -7,12 +7,15 @@
 
 import SwiftUI
 import UIKit
+import FirebaseFirestore
+import FirebaseStorage
 
 struct SettingsView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) var dismiss
 
     @State private var name = ""
+    @State private var schoolInfo = ""
     @State private var major = ""
     @State private var secondMajor = ""
 
@@ -25,6 +28,15 @@ struct SettingsView: View {
     @State private var showPhone = true
 
     @State private var validationMessage = ""
+    
+    @State private var showImageSourceActionSheet = false
+    @State private var showImagePicker = false
+    @State private var imageSourceType: UIImagePickerController.SourceType = .photoLibrary
+    @State private var selectedImageData: Data? = nil
+    @State private var selectedUIImage: UIImage? = nil
+    
+    let database = Firestore.firestore()
+    let storage = Storage.storage()
 
     var body: some View {
         ZStack {
@@ -42,14 +54,24 @@ struct SettingsView: View {
                                 .foregroundColor(.white)
 
                             HStack(spacing: 16) {
-                                Image(user.imageName)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 90, height: 90)
-                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                Group {
+                                    if let picked = selectedUIImage {
+                                        Image(uiImage: picked)
+                                            .resizable()
+                                            .scaledToFill()
+                                    } else {
+                                        AsyncImage(url: URL(string: user.imageName)) { image in
+                                            image.resizable().scaledToFill()
+                                        } placeholder: {
+                                            ProgressView()
+                                        }
+                                    }
+                                }
+                                .frame(width: 90, height: 90)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
 
                                 Button(action: {
-                                    print("Change Profile Photo tapped")
+                                    showImageSourceActionSheet = true
                                 }) {
                                     Text("Change Profile Photo")
                                         .font(.system(size: 16, weight: .medium))
@@ -59,6 +81,71 @@ struct SettingsView: View {
                                         .background(Color.white.opacity(0.12))
                                         .cornerRadius(8)
                                 }
+                                .confirmationDialog("Choose Photo", isPresented: $showImageSourceActionSheet, titleVisibility: .visible) {
+                                    Button("Take Photo") {
+                                        imageSourceType = .camera
+                                        showImagePicker = true
+                                    }
+                                    Button("Choose from Library") {
+                                        imageSourceType = .photoLibrary
+                                        showImagePicker = true
+                                    }
+                                    Button("Cancel", role: .cancel) {}
+                                }
+                                .sheet(isPresented: $showImagePicker) {
+                                    ImagePickerView(sourceType: imageSourceType) { image in
+                                        
+                                        selectedUIImage = image
+                                        
+                                        selectedImageData = image.jpegData(compressionQuality: 0.8)
+                                        
+                                        let profilePictureReference = storage.reference().child("\(appState.currentUser!.username)_PFP.jpg")
+                                        
+                                        profilePictureReference.putData(selectedImageData!) { _, error in
+                                        
+                                            if let error = error {
+                                                print("There was an error uploading the profile picture:", error)
+                                                return
+                                            }
+                                            
+                                            profilePictureReference.downloadURL() { url, error in
+                                                
+                                                if let error = error {
+                                                    print("There was an error getting the URL:", error)
+                                                    return
+                                                }
+                                                
+                                                database
+                                                    .collection("Users")
+                                                    .whereField("username", isEqualTo: appState.currentUser!.username)
+                                                    .getDocuments { (querySnapshot, error) in
+                                                        
+                                                        if let error = error {
+                                                            print("There was an error getting the users:", error)
+                                                            return
+                                                        }
+                                                        
+                                                        let documentID = database.collection("users").document(querySnapshot!.documents.first!.documentID)
+                                                        
+                                                        documentID.updateData(["imageName": url!.absoluteString])
+                                                        
+                                                        guard var user = appState.currentUser else {
+                                                            return
+                                                        }
+                                                        
+                                                        user.imageName = url!.absoluteString
+                                                        
+                                                        appState.updateUser(user)
+                                                        
+                                                    }
+                                                
+                                            }
+                                            
+                                        }
+                                        
+                                    }
+                                }
+                                
                             }
                         }
 
@@ -74,6 +161,11 @@ struct SettingsView: View {
                                 keyboardType: UIKeyboardType.default
                             )
                             
+                            SettingsInputField(
+                                title: "School Info",
+                                text: $schoolInfo,
+                                keyboardType: UIKeyboardType.default
+                            )
                             
                             //major field
                             SettingsInputField(
@@ -161,6 +253,7 @@ struct SettingsView: View {
                         //Logout button
                         Button(action: {
                             appState.logout()
+                            dismiss()
                         }) {
                             Text("Logout")
                                 .font(.system(size: 18, weight: .medium))
@@ -176,6 +269,7 @@ struct SettingsView: View {
                 }
                 .onAppear {
                     name = user.name
+                    schoolInfo = user.schoolInfo
                     major = user.major
                     secondMajor = user.secondMajor
                     personalEmail = user.personalEmail
@@ -234,7 +328,33 @@ struct SettingsView: View {
         guard var user = appState.currentUser else {
             return
         }
-
+        
+        database
+            .collection("Users")
+            .whereField("username", isEqualTo: appState.currentUser!.username)
+            .getDocuments { (querySnapshot, error) in
+                
+                if let error = error {
+                    print("There was an error getting the users:", error)
+                    return
+                }
+                
+                let documentID = database.collection("Users").document(querySnapshot!.documents.first!.documentID)
+                
+                documentID.updateData([
+                    "name": name,
+                    "schoolInfo": schoolInfo,
+                    "major": major,
+                    "secondMajor": secondMajor,
+                    "personalEmail": personalEmail,
+                    "schoolEmail": schoolEmail,
+                    "phone": phone,
+                    "showPersonalEmail": showPersonalEmail,
+                    "showSchoolEmail": showSchoolEmail,
+                    "showPhone": showPhone
+                ])
+                
+            }
         
         //updating user info
         user.name = trimmedName
@@ -304,5 +424,43 @@ struct SettingsToggleRow: View {
                 .foregroundColor(.white)
         }
         .toggleStyle(SwitchToggleStyle(tint: .blue))
+    }
+}
+
+struct ImagePickerView: UIViewControllerRepresentable {
+    let sourceType: UIImagePickerController.SourceType
+    let onImageSelected: (UIImage) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImageSelected: onImageSelected)
+    }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = sourceType
+        picker.delegate = context.coordinator
+        picker.allowsEditing = true
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onImageSelected: (UIImage) -> Void
+
+        init(onImageSelected: @escaping (UIImage) -> Void) {
+            self.onImageSelected = onImageSelected
+        }
+
+        func imagePickerController(_ picker: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            let image = (info[.editedImage] ?? info[.originalImage]) as! UIImage
+            onImageSelected(image)
+            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
     }
 }

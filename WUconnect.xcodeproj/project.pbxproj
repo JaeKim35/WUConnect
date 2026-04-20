@@ -6,13 +6,34 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		30AD56882F95CFFB00AEB7BA /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 30AD56872F95CFFB00AEB7BA /* FirebaseCore */; };
+		30AD568C2F95D00800AEB7BA /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = 30AD568B2F95D00800AEB7BA /* FirebaseStorage */; };
+		30AD568E2F95D09A00AEB7BA /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 30AD568D2F95D09A00AEB7BA /* FirebaseFirestore */; };
+		30AD56912F95D4AF00AEB7BA /* BCrypt in Frameworks */ = {isa = PBXBuildFile; productRef = 30AD56902F95D4AF00AEB7BA /* BCrypt */; };
+		30AD56942F95E15500AEB7BA /* QRCode in Frameworks */ = {isa = PBXBuildFile; productRef = 30AD56932F95E15500AEB7BA /* QRCode */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		D37359E42F79BAF700E4990B /* WUconnect.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WUconnect.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		30AD56962F960D2700AEB7BA /* Exceptions for "WUconnect" folder in "WUconnect" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D37359E32F79BAF700E4990B /* WUconnect */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D37359E62F79BAF700E4990B /* WUconnect */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				30AD56962F960D2700AEB7BA /* Exceptions for "WUconnect" folder in "WUconnect" target */,
+			);
 			path = WUconnect;
 			sourceTree = "<group>";
 		};
@@ -23,16 +44,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				30AD56942F95E15500AEB7BA /* QRCode in Frameworks */,
+				30AD568E2F95D09A00AEB7BA /* FirebaseFirestore in Frameworks */,
+				30AD56882F95CFFB00AEB7BA /* FirebaseCore in Frameworks */,
+				30AD56912F95D4AF00AEB7BA /* BCrypt in Frameworks */,
+				30AD568C2F95D00800AEB7BA /* FirebaseStorage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		30AD56862F95CFFB00AEB7BA /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		D37359DB2F79BAF700E4990B = {
 			isa = PBXGroup;
 			children = (
 				D37359E62F79BAF700E4990B /* WUconnect */,
+				30AD56862F95CFFB00AEB7BA /* Frameworks */,
 				D37359E52F79BAF700E4990B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -65,6 +99,11 @@
 			);
 			name = WUconnect;
 			packageProductDependencies = (
+				30AD56872F95CFFB00AEB7BA /* FirebaseCore */,
+				30AD568B2F95D00800AEB7BA /* FirebaseStorage */,
+				30AD568D2F95D09A00AEB7BA /* FirebaseFirestore */,
+				30AD56902F95D4AF00AEB7BA /* BCrypt */,
+				30AD56932F95E15500AEB7BA /* QRCode */,
 			);
 			productName = WUconnect;
 			productReference = D37359E42F79BAF700E4990B /* WUconnect.app */;
@@ -94,6 +133,11 @@
 			);
 			mainGroup = D37359DB2F79BAF700E4990B;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				30AD56402F95C29100AEB7BA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				30AD568F2F95D4AF00AEB7BA /* XCRemoteSwiftPackageReference "bcrypt" */,
+				30AD56922F95E13800AEB7BA /* XCRemoteSwiftPackageReference "QRCode" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D37359E52F79BAF700E4990B /* Products */;
 			projectDirPath = "";
@@ -256,6 +300,7 @@
 				DEVELOPMENT_TEAM = P3P8PJ37S4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WUconnect/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +333,7 @@
 				DEVELOPMENT_TEAM = P3P8PJ37S4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WUconnect/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -332,6 +378,61 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		30AD56402F95C29100AEB7BA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.12.1;
+			};
+		};
+		30AD568F2F95D4AF00AEB7BA /* XCRemoteSwiftPackageReference "bcrypt" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/vapor-community/bcrypt";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.1;
+			};
+		};
+		30AD56922F95E13800AEB7BA /* XCRemoteSwiftPackageReference "QRCode" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/dagronf/QRCode";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 28.0.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		30AD56872F95CFFB00AEB7BA /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 30AD56402F95C29100AEB7BA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		30AD568B2F95D00800AEB7BA /* FirebaseStorage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 30AD56402F95C29100AEB7BA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseStorage;
+		};
+		30AD568D2F95D09A00AEB7BA /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 30AD56402F95C29100AEB7BA /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		30AD56902F95D4AF00AEB7BA /* BCrypt */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 30AD568F2F95D4AF00AEB7BA /* XCRemoteSwiftPackageReference "bcrypt" */;
+			productName = BCrypt;
+		};
+		30AD56932F95E15500AEB7BA /* QRCode */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 30AD56922F95E13800AEB7BA /* XCRemoteSwiftPackageReference "QRCode" */;
+			productName = QRCode;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D37359DC2F79BAF700E4990B /* Project object */;
 }

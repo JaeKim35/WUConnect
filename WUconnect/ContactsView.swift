@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFoundation
 
 struct ContactsView: View {
     @EnvironmentObject var appState: AppState
@@ -14,6 +15,9 @@ struct ContactsView: View {
     @State private var searchText = ""
     @State private var showCreateGroupSheet = false
     @State private var newGroupName = ""
+    
+    @State private var showQRScanner = false
+    @State private var scannedUsername: String? = nil
 
     var body: some View {
         ZStack {
@@ -59,6 +63,16 @@ struct ContactsView: View {
                             .foregroundColor(.white)
                             .padding(.horizontal, 10)
                             .frame(height: 36)
+                            .background(Color.white.opacity(0.12))
+                            .cornerRadius(8)
+                    }
+                    Button(action: {
+                        showQRScanner = true
+                    }) {
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                            .frame(width: 36, height: 36)
                             .background(Color.white.opacity(0.12))
                             .cornerRadius(8)
                     }
@@ -172,6 +186,14 @@ struct ContactsView: View {
                     createGroup()
                 }
             )
+        }
+        .sheet(isPresented: $showQRScanner) {
+            QRScannerView { username in
+                scannedUsername = username
+                showQRScanner = false
+                // TODO: use scannedUsername to look up and add contact
+                print("Scanned username: \(username)")
+            }
         }
     }
     
@@ -313,6 +335,108 @@ struct CreateGroupSheet: View {
     }
 }
 
+struct QRScannerView: UIViewControllerRepresentable {
+    let onUsernameScanned: (String) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onUsernameScanned: onUsernameScanned)
+    }
+
+    func makeUIViewController(context: Context) -> ScannerViewController {
+        let vc = ScannerViewController()
+        vc.delegate = context.coordinator
+        return vc
+    }
+
+    func updateUIViewController(_ uiViewController: ScannerViewController, context: Context) {}
+
+    class Coordinator: NSObject, AVCaptureMetadataOutputObjectsDelegate {
+        let onUsernameScanned: (String) -> Void
+        private var hasScanned = false
+
+        init(onUsernameScanned: @escaping (String) -> Void) {
+            self.onUsernameScanned = onUsernameScanned
+        }
+
+        func metadataOutput(_ output: AVCaptureMetadataOutput,
+                            didOutput metadataObjects: [AVMetadataObject],
+                            from connection: AVCaptureConnection) {
+            guard !hasScanned,
+                  let metadata = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
+                  metadata.type == .qr,
+                  let scannedValue = metadata.stringValue else { return }
+
+            hasScanned = true
+            DispatchQueue.main.async {
+                self.onUsernameScanned(scannedValue)
+            }
+        }
+    }
+}
+
+
+class ScannerViewController: UIViewController {
+    var delegate: AVCaptureMetadataOutputObjectsDelegate?
+
+    private var captureSession = AVCaptureSession()
+    private var previewLayer: AVCaptureVideoPreviewLayer?
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+
+        guard let videoCaptureDevice = AVCaptureDevice.default(for: .video),
+              let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice),
+              captureSession.canAddInput(videoInput) else {
+            showCameraUnavailableLabel()
+            return
+        }
+
+        captureSession.addInput(videoInput)
+
+        let metadataOutput = AVCaptureMetadataOutput()
+        guard captureSession.canAddOutput(metadataOutput) else { return }
+        captureSession.addOutput(metadataOutput)
+        metadataOutput.setMetadataObjectsDelegate(delegate, queue: DispatchQueue.main)
+        metadataOutput.metadataObjectTypes = [.qr]
+
+        let preview = AVCaptureVideoPreviewLayer(session: captureSession)
+        preview.frame = view.layer.bounds
+        preview.videoGravity = .resizeAspectFill
+        view.layer.addSublayer(preview)
+        self.previewLayer = preview
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.captureSession.startRunning()
+        }
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        previewLayer?.frame = view.layer.bounds
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        if captureSession.isRunning {
+            captureSession.stopRunning()
+        }
+    }
+
+    private func showCameraUnavailableLabel() {
+        let label = UILabel()
+        label.text = "Camera unavailable"
+        label.textColor = .white
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+    }
+}
+
 struct ContactsView_PreviewWrapper: View {
     @StateObject private var appState = AppState()
     @StateObject private var contactsStore = ContactsStore()
@@ -325,6 +449,7 @@ struct ContactsView_PreviewWrapper: View {
         }
         .onAppear {
             appState.currentUser = User(
+                username: "Edgar",
                 name: "Dog Dog",
                 schoolInfo: "WashU - Senior",
                 major: "Computer Science",

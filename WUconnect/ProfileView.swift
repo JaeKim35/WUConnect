@@ -48,7 +48,7 @@ struct ProfileView: View {
                     HStack(alignment: .top) {
                         VStack(alignment: .leading, spacing: 12) {
 
-                            Text(user.name)
+                            Text("\(user.name) (\(user.username))")
                                 .font(.system(size: 28, weight: .bold))
                                 .foregroundColor(.white)
                                 .lineLimit(1)
@@ -70,11 +70,15 @@ struct ProfileView: View {
                         Spacer()
 
                         //prof pic
-                        Image(user.imageName)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: 130, height: 130)
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
+                        AsyncImage(url: URL(string: user.imageName)) { image in
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        } placeholder: {
+                            ProgressView()
+                        }
+                        .frame(width: 130, height: 130)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
                     }
                     .padding(.horizontal, 24)
 
@@ -83,11 +87,11 @@ struct ProfileView: View {
                     //contact info
                     VStack(spacing: 18) {
                         if user.showPersonalEmail {
-                            InfoData(label: "Email", value: user.personalEmail)
+                            InfoData(label: "Email 1", value: user.personalEmail)
                         }
 
                         if user.showSchoolEmail {
-                            InfoData(label: "Email", value: user.schoolEmail)
+                            InfoData(label: "Email 2", value: user.schoolEmail)
                         }
 
                         if user.showPhone {
@@ -112,12 +116,15 @@ struct ProfileView: View {
                     Spacer().frame(height: 20)
 
                     //QR image
-                    Image(user.qrName)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(width: 230, height: 230)
-                        .background(Color.white)
+                    AsyncImage(url: URL(string: user.qrName)) { image in
+                        image
+                            .resizable()
+                            .scaledToFit()
+                    } placeholder: {
+                        ProgressView()
+                    }
+                    .frame(width: 230, height: 230)
+                    .background(Color.white)
 
                     Spacer()
 
@@ -157,6 +164,7 @@ struct ProfileView: View {
 #Preview {
     let appState = AppState()
     appState.currentUser = User(
+        username: "Edgar",
         name: "Dog Dog",
         schoolInfo: "WashU - Senior",
         major: "Computer Science",
