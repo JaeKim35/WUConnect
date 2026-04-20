@@ -148,6 +148,9 @@ struct EditGroupSheet: View {
 
     @State private var editedGroupName = ""
     
+    @State private var sameNameAlert = false
+    @State private var nameUnavailableAlert = false
+    
     let database = Firestore.firestore()
 
     var body: some View {
@@ -160,40 +163,71 @@ struct EditGroupSheet: View {
                 Section {
                     Button("Save Name Change") {
                         
-                        contactsStore.renameGroup(
-                            groupId: groupId,
-                            newName: editedGroupName
-                        )
+                        if editedGroupName == groupName {
+                            sameNameAlert = true
+                            return
+                        }
                         
                         if let user = appState.currentUser {
                             
                             database
                                 .collection("Contact Groups")
                                 .whereField("username", isEqualTo: user.username)
-                                .whereField("name", isEqualTo: groupName)
+                                .whereField("name", isEqualTo: editedGroupName)
+                                .limit(to: 1)
                                 .getDocuments { (querySnapshot, error) in
                                     
                                     if let error = error {
-                                        print("There was an error getting the contact groups:", error)
+                                        print("There was an error getting the users:", error)
                                         return
                                     }
                                     
-                                    guard let querySnapshot = querySnapshot,
-                                          let document = querySnapshot.documents.first else {
-                                        print("There was an error finding the contact group document.")
+                                    guard let querySnapshot = querySnapshot else {
+                                        print("There was an error getting the users.")
                                         return
                                     }
                                     
-                                    let documentID = database.collection("Contact Groups").document(document.documentID)
+                                    if querySnapshot.count == 1 {
+                                        nameUnavailableAlert = true
+                                        return
+                                    }
                                     
-                                    documentID.updateData(["name": editedGroupName])
+                                    database
+                                        .collection("Contact Groups")
+                                        .whereField("username", isEqualTo: user.username)
+                                        .whereField("name", isEqualTo: groupName)
+                                        .limit(to: 1)
+                                        .getDocuments { (querySnapshot, error) in
+                                            
+                                            if let error = error {
+                                                print("There was an error getting the contact groups:", error)
+                                                return
+                                            }
+                                            
+                                            guard let querySnapshot = querySnapshot,
+                                                  let document = querySnapshot.documents.first else {
+                                                print("There was an error finding the contact group document.")
+                                                return
+                                            }
+                                            
+                                            let documentID = database.collection("Contact Groups").document(document.documentID)
+                                            
+                                            documentID.updateData(["name": editedGroupName])
+                                            
+                                            contactsStore.renameGroup(
+                                                groupId: groupId,
+                                                newName: editedGroupName
+                                            )
+                                            
+                                            DispatchQueue.main.async {
+                                                dismiss()
+                                            }
+                                            
+                                        }
                                     
                                 }
                             
                         }
-                        
-                        
-                        dismiss()
                         
                     }
                 }
@@ -209,6 +243,7 @@ struct EditGroupSheet: View {
                                 .collection("Contact Groups")
                                 .whereField("username", isEqualTo: user.username)
                                 .whereField("name", isEqualTo: groupName)
+                                .limit(to: 1)
                                 .getDocuments { (querySnapshot, error) in
                                     
                                     if let error = error {
@@ -250,6 +285,16 @@ struct EditGroupSheet: View {
                 if let group = contactsStore.group(for: groupId) {
                     editedGroupName = group.name
                 }
+            }
+            .alert("Same Name!", isPresented: $sameNameAlert) {
+                Button("OK", role: ButtonRole.cancel) { }
+            } message: {
+                Text("Please choose a different name.")
+            }
+            .alert("Name Unavailable!", isPresented: $nameUnavailableAlert) {
+                Button("OK", role: ButtonRole.cancel) { }
+            } message: {
+                Text("Please choose a different name.")
             }
         }
     }

@@ -20,6 +20,8 @@ struct ContactsView: View {
     @State private var showQRScanner = false
     @State private var scannedUsername: String? = nil
     
+    @State private var nameUnavailableAlert = false
+    
     let database = Firestore.firestore()
     
     var body: some View {
@@ -280,6 +282,11 @@ struct ContactsView: View {
                 addScannedContact(username: username)
             }
         }
+        .alert("Name Unavailable!", isPresented: $nameUnavailableAlert) {
+            Button("OK", role: ButtonRole.cancel) { }
+        } message: {
+            Text("Please choose a different name.")
+        }
     }
     
     
@@ -339,18 +346,43 @@ struct ContactsView: View {
         contactsStore.createGroup(name: newGroupName)
         
         if let user = appState.currentUser {
+            
             database
                 .collection("Contact Groups")
-                .addDocument(data: [
-                    "username": user.username,
-                    "name": newGroupName,
-                    "contacts": []
-                ])
+                .whereField("username", isEqualTo: user.username)
+                .whereField("name", isEqualTo: newGroupName)
+                .getDocuments { (querySnapshot, error) in
+                    
+                    if let error = error {
+                        print("There was an error getting the users:", error)
+                        return
+                    }
+                    
+                    guard let querySnapshot = querySnapshot else {
+                        print("There was an error getting the users.")
+                        return
+                    }
+                    
+                    if querySnapshot.count == 1 {
+                        nameUnavailableAlert = true
+                        return
+                    }
+                    
+                    database
+                        .collection("Contact Groups")
+                        .addDocument(data: [
+                            "username": user.username,
+                            "name": newGroupName,
+                            "contacts": []
+                        ])
+                    
+                    newGroupName = ""
+                    
+                    showCreateGroupSheet = false
+                    
+                }
+            
         }
-        
-        newGroupName = ""
-        
-        showCreateGroupSheet = false
         
     }
     
