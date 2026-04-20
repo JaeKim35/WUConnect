@@ -9,6 +9,7 @@ import Foundation
 
 struct Contact: Identifiable, Codable, Equatable {
     let id: UUID
+    let username: String
     let name: String
     let schoolInfo: String
     let major: String
@@ -20,16 +21,18 @@ struct Contact: Identifiable, Codable, Equatable {
 
     init(
         id: UUID = UUID(),
-        name: String,
-        schoolInfo: String,
-        major: String,
-        personalEmail: String,
-        schoolEmail: String,
-        phone: String,
-        imageName: String,
-        qrName: String
+        username: String = "",
+        name: String = "",
+        schoolInfo: String = "",
+        major: String = "",
+        personalEmail: String = "",
+        schoolEmail: String = "",
+        phone: String = "",
+        imageName: String = "",
+        qrName: String = ""
     ) {
         self.id = id
+        self.username = username
         self.name = name
         self.schoolInfo = schoolInfo
         self.major = major

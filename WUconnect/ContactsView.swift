@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import FirebaseFirestore
 
 struct ContactsView: View {
     @EnvironmentObject var appState: AppState
@@ -18,6 +19,8 @@ struct ContactsView: View {
     
     @State private var showQRScanner = false
     @State private var scannedUsername: String? = nil
+    
+    let database = Firestore.firestore()
 
     var body: some View {
         ZStack {
@@ -175,6 +178,89 @@ struct ContactsView: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
+            }
+            .onAppear {
+                
+                if let user = appState.currentUser {
+                    
+                    database
+                        .collection("Contacts")
+                        .whereField("username", isEqualTo: user.username)
+                        .limit(to: 1)
+                        .getDocuments { (querySnapshot, error) in
+                            
+                            if let error = error {
+                                print("There was an error getting the users:", error)
+                                return
+                            }
+                            
+                            guard let querySnapshot = querySnapshot,
+                                  let document = querySnapshot.documents.first else {
+                                return
+                            }
+                            
+                            var newContacts = [] as [Contact]
+                            
+                            if let contactsFetched = document.data()["contacts"] as? [[String: String]] {
+                                for contact in contactsFetched {
+                                    guard let username = contact["username"],
+                                          let name = contact["name"] else {
+                                        return
+                                    }
+                                    newContacts.append(Contact(username: username, name: name))
+                                }
+                            }
+                            
+                            contactsStore.allContacts = newContacts
+                            
+                        }
+                    
+                    database
+                        .collection("ContactGroups")
+                        .whereField("username", isEqualTo: user.username)
+                        .getDocuments { (querySnapshot, error) in
+                            
+                            if let error = error {
+                                print("There was an error getting the users:", error)
+                                return
+                            }
+                            
+                            guard let querySnapshot = querySnapshot else {
+                                return
+                            }
+                            
+                            var newContactGroups = [] as [ContactGroup]
+                            
+                            for contactGroupFetched in querySnapshot.documents {
+                                
+                                let groupData = contactGroupFetched.data()
+                                
+                                guard let groupName = groupData["name"] as? String,
+                                      let groupContacts = groupData["contacts"] as? [[String: Any]] else {
+                                    continue
+                                    }
+                                
+                                var newContactGroup = ContactGroup(name: groupName, contacts: [])
+                                
+                                for contact in groupContacts {
+                                    guard let username = contact["username"] as? String,
+                                          let name = contact["name"] as? String else {
+                                        continue
+                                    }
+                                    newContactGroup.contacts.append(Contact(username: username, name: name))
+                                }
+                                
+                                newContactGroups.append(newContactGroup)
+                                
+                            }
+                            
+                            contactsStore.contactGroups = newContactGroups
+                            
+                        }
+                    
+                    
+                }
+                
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
