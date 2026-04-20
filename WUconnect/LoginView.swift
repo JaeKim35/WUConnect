@@ -326,6 +326,10 @@ struct LoginView: View {
                                         
                                     }
                                     
+                                    database
+                                        .collection("Contacts")
+                                        .addDocument(data: ["username": username, "contacts": []])
+                                    
                                     userCreatedAlert = true
                                     
                                 } catch {
